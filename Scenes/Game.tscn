@@ -1,0 +1,133 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Node2D
+
+onready var pieces : Array = [
+	preload(\"res://Scenes/Pieces/O.tscn\")
+	,preload(\"res://Scenes/Pieces/L.tscn\")
+	,preload(\"res://Scenes/Pieces/S.tscn\")
+	,preload(\"res://Scenes/Pieces/I.tscn\")
+]
+
+onready var grid_size : Vector2 = Vector2(10, 22)
+onready var grid_cells : Array = []
+onready var grid_offset : int = 5
+onready var clock : float = 0.1
+onready var tick : float = 0.0
+
+var piece : Node2D
+var placed_pieces : Array = []
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	add_piece(pieces[0])
+	setup_grid_cells()
+	
+func _process(delta: float) -> void:
+	move_piece(delta)
+
+func _input(event: InputEvent) -> void:
+	if(event.is_action_pressed(\"ui_left\")):
+		piece.position.x -= grid_offset
+	elif(event.is_action_pressed(\"ui_right\")):
+		piece.position.x += grid_offset
+
+func _draw() -> void:
+	for x in range(0, grid_size.x):
+		draw_line(Vector2(x*grid_offset, 0), Vector2(x*grid_offset, grid_size.y*grid_offset), Color.white, 1, false)
+	for y in range(0, grid_size.y):
+		draw_line(Vector2(0, y*grid_offset), Vector2(grid_size.x*grid_offset, y*grid_offset), Color.white)
+
+func setup_grid_cells() -> void:
+	for y in grid_size.y:
+		var line : Array = []
+		grid_cells.append(line)
+		for x in grid_size.x:
+			line.append(0)
+			
+func anchor_piece(positions : Array) -> void:
+	placed_pieces.append(piece)
+	for position in positions:
+		var cell : Vector2 = position
+		var grid_cell_y : Array = grid_cells[cell.y -1]
+		grid_cell_y[cell.x -1] = 2
+
+func print_grid_cells() -> void:
+	for x in grid_cells:
+		print(x)
+	print(\"------------------------------------------------------\")
+			
+	
+func is_next_vertical_cell_free(position : Vector2) -> bool:
+	if(position.y > grid_size.y):
+		return false
+	else:
+		var grid_cell_y : Array = grid_cells[position.y]
+		var grid_cell_x : int = grid_cell_y[position.x -1]
+		if(grid_cell_x != 2):
+			return true
+		else:
+			return false
+
+func check_tetris() -> void:
+	for y in grid_cells.size():
+		var full : bool = true
+		for x in grid_cells[y].size():
+			if(grid_cells[y][x] != 2):
+				full = false
+		
+		if(full):
+			for x in grid_cells[y].size():
+				for piece in placed_pieces:
+					for child in piece.get_children():
+						if(map_to_grid_cell(child.global_position) == Vector2(x, y)):
+							child.queue_free()
+							grid_cells[y][x] = 0
+						
+				
+	
+func move_piece(delta : float) -> void:
+	var positions : Array = []
+	tick += delta
+	if(tick >= clock):
+		tick = 0.0
+		if(piece != null):
+			piece.position.y += grid_offset
+			for block in piece.get_children():
+				positions.append(map_to_grid_cell(block.global_position))
+				
+		for position in positions:
+			if(position.y >= grid_size.y or !is_next_vertical_cell_free(position)):
+				anchor_piece(positions)
+				check_tetris()
+				add_piece(pieces[0])
+	
+func grid_cell_to_map(position : Vector2) -> Vector2:
+	return position * 5
+	
+func map_to_grid_cell(position : Vector2) -> Vector2:
+	return (position / 5) + Vector2(2.5, 2.5) - Vector2(2, 2)
+
+func add_random_piece() -> void:
+	randomize()
+	var random : int = rand_range(0, pieces.size())
+	piece = pieces[random].instance()
+	add_child(piece)
+	piece.position = Vector2(20, 10)
+	
+func add_piece(piece : PackedScene) -> void:
+	randomize()
+	var random : int = rand_range(0, pieces.size())
+	var instance : Node2D = piece.instance()
+	self.piece = instance
+	add_child(instance)
+	instance.position = Vector2(20, 10)
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+#func _process(delta: float) -> void:
+#	pass
+"
+
+[node name="Game" type="Node2D"]
+script = SubResource( 1 )

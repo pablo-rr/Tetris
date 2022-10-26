@@ -8,12 +8,15 @@ onready var pieces : Array = [
 	,preload(\"res://Scenes/Pieces/L.tscn\")
 	,preload(\"res://Scenes/Pieces/S.tscn\")
 	,preload(\"res://Scenes/Pieces/I.tscn\")
+	,preload(\"res://Scenes/Pieces/T.tscn\")
+	,preload(\"res://Scenes/Pieces/Z.tscn\")
+	,preload(\"res://Scenes/Pieces/iL.tscn\")
 ]
 
 onready var grid_size : Vector2 = Vector2(10, 22)
 onready var grid_cells : Array = []
 onready var grid_offset : int = 5
-onready var clock : float = 0.1
+onready var clock : float = 0.2
 onready var tick : float = 0.0
 
 var piece : Node2D
@@ -21,23 +24,28 @@ var placed_pieces : Array = []
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	add_piece(pieces[0])
+#	add_piece(pieces[0])
+	add_random_piece()
 	setup_grid_cells()
 	
 func _process(delta: float) -> void:
 	move_piece(delta)
 
 func _input(event: InputEvent) -> void:
-	if(event.is_action_pressed(\"ui_left\")):
+	if(event.is_action_pressed(\"ui_left\") and !is_piece_on_left_border()):
 		piece.position.x -= grid_offset
-	elif(event.is_action_pressed(\"ui_right\")):
+	elif(event.is_action_pressed(\"ui_right\") and !is_piece_on_right_border()):
 		piece.position.x += grid_offset
+	elif(event.is_action_pressed(\"ui_up\")):
+		piece.rotation_degrees += 90
+		position_piece_between_borders()
+		
 
 func _draw() -> void:
 	for x in range(0, grid_size.x):
-		draw_line(Vector2(x*grid_offset, 0), Vector2(x*grid_offset, grid_size.y*grid_offset), Color.white, 1, false)
+		draw_line(Vector2(x*grid_offset, 0), Vector2(x*grid_offset, grid_size.y*grid_offset), Color(0.1, 0.1, 0.1), 1, false)
 	for y in range(0, grid_size.y):
-		draw_line(Vector2(0, y*grid_offset), Vector2(grid_size.x*grid_offset, y*grid_offset), Color.white)
+		draw_line(Vector2(0, y*grid_offset), Vector2(grid_size.x*grid_offset, y*grid_offset), Color(0.1, 0.1, 0.1), 1, false)
 
 func setup_grid_cells() -> void:
 	for y in grid_size.y:
@@ -52,12 +60,39 @@ func anchor_piece(positions : Array) -> void:
 		var cell : Vector2 = position
 		var grid_cell_y : Array = grid_cells[cell.y -1]
 		grid_cell_y[cell.x -1] = 2
+		
+	print_grid_cells()
+	print(\"\")
 
 func print_grid_cells() -> void:
 	for x in grid_cells:
 		print(x)
 	print(\"------------------------------------------------------\")
 			
+func position_piece_between_borders() -> void:
+	var distance : int = 0
+	for block in piece.get_children():
+		if(map_to_grid_cell(block.global_position).x < 1):
+			distance += 1
+		elif(map_to_grid_cell(block.global_position).x > grid_size.x):
+			distance -= 1
+			
+	piece.position.x += distance * grid_offset
+			
+			
+func is_piece_on_left_border() -> bool:
+	for block in piece.get_children():
+		if(map_to_grid_cell(block.global_position).x <= 1):
+			return true
+			
+	return false
+	
+func is_piece_on_right_border() -> bool:
+	for block in piece.get_children():
+		if(map_to_grid_cell(block.global_position).x >= grid_size.x):
+			return true
+			
+	return false
 	
 func is_next_vertical_cell_free(position : Vector2) -> bool:
 	if(position.y > grid_size.y):
@@ -81,9 +116,10 @@ func check_tetris() -> void:
 			for x in grid_cells[y].size():
 				for piece in placed_pieces:
 					for child in piece.get_children():
-						if(map_to_grid_cell(child.global_position) == Vector2(x, y)):
+						if(child.global_position - Vector2(2.5, 2.5) == grid_cell_to_map(Vector2(x, y))):
 							child.queue_free()
-							grid_cells[y][x] = 0
+				grid_cells[y][x] = 0
+	print_grid_cells()
 						
 				
 	
@@ -92,6 +128,7 @@ func move_piece(delta : float) -> void:
 	tick += delta
 	if(tick >= clock):
 		tick = 0.0
+		print_grid_cells()
 		if(piece != null):
 			piece.position.y += grid_offset
 			for block in piece.get_children():
@@ -101,7 +138,9 @@ func move_piece(delta : float) -> void:
 			if(position.y >= grid_size.y or !is_next_vertical_cell_free(position)):
 				anchor_piece(positions)
 				check_tetris()
-				add_piece(pieces[0])
+				add_random_piece()
+#				add_piece(pieces[0])
+				return
 	
 func grid_cell_to_map(position : Vector2) -> Vector2:
 	return position * 5

@@ -4,8 +4,7 @@
 [ext_resource path="res://Art/Sprites/End.png" type="Texture" id=2]
 
 [node name="S" type="Node2D"]
-modulate = Color( 0.482353, 1, 0.270588, 1 )
-z_index = -1
+modulate = Color( 0.392157, 0.956863, 0.160784, 1 )
 
 [node name="Sprite" type="Sprite" parent="."]
 position = Vector2( -2.5, 2.5 )

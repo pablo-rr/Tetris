@@ -6,7 +6,6 @@
 
 [node name="L" type="Node2D"]
 modulate = Color( 1, 0.584314, 0.0509804, 1 )
-z_index = -1
 
 [node name="Sprite" type="Sprite" parent="."]
 position = Vector2( -2.5, 2.5 )
